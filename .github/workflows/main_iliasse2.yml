@@ -29,22 +29,14 @@ jobs:
           curl -fsSL https://bun.sh/install | bash
           echo "PATH=$HOME/.bun/bin:\$PATH" >> $GITHUB_ENV
 
-      - name: Install required system dependencies
-        run: |
-          apt-get update
-          apt-get install -y build-essential sh
-
           
-      - name: Set env vars and run build steps
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          KEY_VAULTS_SECRET: ${{ secrets.KEY_VAULTS_SECRET }}
+      - name: npm install, build, and test
         run: |
-              echo "Running build and migrations..."
-              npm install --legacy-peer-deps
-              NODE_OPTIONS="--max-old-space-size=8192" npm run build --if-present
-              npm run test --if-present
-              bun run db:migrate
+          npm install --legacy-peer-deps
+          NODE_OPTIONS="--max-old-space-size=8192" npm run build --if-present
+          npm run build --if-present
+          npm run test --if-present
+          bun run db:migrate
           
 
       - name: Zip artifact for deployment
