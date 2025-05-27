@@ -88,6 +88,8 @@ jobs:
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
+        env:
+         NODE_OPTIONS: "--max-old-space-size=8096"
       
         with:
           app-name: 'iliasse2'
