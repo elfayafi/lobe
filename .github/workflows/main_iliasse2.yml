@@ -53,13 +53,7 @@ jobs:
           echo "PATH=$HOME/.bun/bin:$PATH" >> $GITHUB_ENV
           source $GITHUB_ENV
           bun --version
-      - name: Validate environment variables
-        run: |
-          if [[ -z "$S3_ENDPOINT" || ! "$S3_ENDPOINT" =~ ^postgres?:// ]]; then
-            echo "Invalid S3_ENDPOINT: $S3_ENDPOINT"
-            exit 1
-          fi
-          echo "All environment variables are valid."
+    
           
       - name: Install dependencies and build with Bun
         run: |
