@@ -27,7 +27,9 @@ jobs:
         shell: bash
         run: |
           curl -fsSL https://bun.sh/install | bash
-          echo "PATH=$HOME/.bun/bin:\$PATH" >> $GITHUB_ENV
+          echo "PATH=$HOME/.bun/bin:$PATH" >> $GITHUB_ENV
+          source $GITHUB_ENV
+          bun --version || echo "Bun installation failed"
 
           
       - name: npm install, build, and test
@@ -36,7 +38,7 @@ jobs:
           NODE_OPTIONS="--max-old-space-size=8192" npm run build --if-present
           npm run build --if-present
           npm run test --if-present
-          bun run db:migrate
+          
           
 
       - name: Zip artifact for deployment
