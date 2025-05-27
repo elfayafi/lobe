@@ -31,13 +31,16 @@ jobs:
 
     
           
-      - name: npm install, build, and test
+      - name: Set env vars and run build steps
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          KEY_VAULTS_SECRET: ${{ secrets.KEY_VAULTS_SECRET }}
         run: |
-          npm install --legacy-peer-deps
-          NODE_OPTIONS="--max-old-space-size=8192" npm run build --if-present
-          npm run build --if-present
-          npm run test --if-present
-          bun run db:migrate
+              echo "Running build and migrations..."
+              npm install --legacy-peer-deps
+              NODE_OPTIONS="--max-old-space-size=8192" npm run build --if-present
+              npm run test --if-present
+              bun run db:migrate
           
 
       - name: Zip artifact for deployment
