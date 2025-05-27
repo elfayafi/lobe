@@ -55,7 +55,7 @@ jobs:
           bun --version
       - name: Validate environment variables
         run: |
-          if [[ -z "$S3_ENDPOINT" || ! "$S3_ENDPOINT" =~ ^https?:// ]]; then
+          if [[ -z "$S3_ENDPOINT" || ! "$S3_ENDPOINT" =~ ^postgres?:// ]]; then
             echo "Invalid S3_ENDPOINT: $S3_ENDPOINT"
             exit 1
           fi
