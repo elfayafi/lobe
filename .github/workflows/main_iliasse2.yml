@@ -57,7 +57,7 @@ jobs:
           
       - name: Install dependencies and build with Bun
         run: |
-          pnmp install
+          pnpm install
           NODE_OPTIONS="--max-old-space-size=8192" bun run build
 
       - name: Zip artifact for deployment
