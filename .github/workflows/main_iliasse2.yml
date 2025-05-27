@@ -61,7 +61,7 @@ jobs:
           NODE_OPTIONS="--max-old-space-size=8192" bun run build
 
       - name: Zip artifact for deployment
-        run: zip -r release.zip . -x "*.git*" "tests/*"
+        run: zip -r release.zip . -x "*.git*" "docs/" "tests/*"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
