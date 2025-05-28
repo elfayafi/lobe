@@ -61,7 +61,7 @@ jobs:
           NODE_OPTIONS="--max-old-space-size=8192" bun run build
 
       - name: Create deployable ZIP
-        run: zip -r release.zip . -x "*.git*" "*node_modules/*" "*.next/*" "*.idea/*" "*.vscode/*" "*.cursor/*" "*__mocks__/*" "tests/*" "docs/*" "scripts/*" "docker-compose/*" "*.github/*" "*coverage/*" "changelog/*" ".env*" ".husky/*" ".devcontainer/*" "*.log" "*.md" "*.prettier*" "*.eslint*" "*.editorconfig" "vitest.config.ts" "drizzle.config.ts" "*.toml" "renovate.json" "codecov.yml"
+        run: zip -r release.zip . -x "*.git*" "*.idea/*" "*.vscode/*" "*.cursor/*" "*__mocks__/*" "tests/*" "docs/*" "scripts/*" "docker-compose/*" "*.github/*" "*coverage/*" "changelog/*" ".env*" ".husky/*" ".devcontainer/*" "*.log" "*.md" "*.prettier*" "*.eslint*" "*.editorconfig" "vitest.config.ts" "drizzle.config.ts" "*.toml" "renovate.json" "codecov.yml"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
