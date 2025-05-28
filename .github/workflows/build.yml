@@ -1,21 +1,52 @@
-name: Deploy to Azure Web App
+name: Build and Deploy Node.js App
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      APP_URL: ${{ secrets.APP_URL }}
+      AUTH_MICROSOFT_ENTRA_ID_ID: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_ID }}
+      AUTH_MICROSOFT_ENTRA_ID_SECRET: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_SECRET }}
+      AUTH_MICROSOFT_ENTRA_ID_TENANT_ID: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID }}
+      DATABASE_DRIVER: ${{ secrets.DATABASE_DRIVER }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      KEY_VAULTS_SECRET: ${{ secrets.KEY_VAULTS_SECRET }}
+      NEXT_AUTH_SECRET: ${{ secrets.NEXT_AUTH_SECRET }}
+      NEXT_AUTH_SSO_PROVIDERS: ${{ secrets.NEXT_AUTH_SSO_PROVIDERS }}
+      NEXT_PUBLIC_ENABLE_NEXT_AUTH: ${{ secrets.NEXT_PUBLIC_ENABLE_NEXT_AUTH }}
+      NEXT_PUBLIC_SERVICE_MODE: ${{ secrets.NEXT_PUBLIC_SERVICE_MODE }}
+      NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      S3_ENDPOINT: "https://1f88eecdb6582f720a1086fd2f1bf1d6.r2.cloudflarestorage.com"
+      S3_PUBLIC_DOMAIN: ${{ secrets.S3_PUBLIC_DOMAIN }}
+      S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '22.x'
 
-      - name: Install Bun (optional)
+      - name: Enable corepack and install pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          pnpm -v
+
+      - name: Install Bun
         shell: bash
         run: |
           curl -fsSL https://bun.sh/install | bash
@@ -23,40 +54,30 @@ jobs:
           source $GITHUB_ENV
           bun --version
 
-      - name: Install PNPM
-        run: npm install -g pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build Next.js App (standalone)
-        env:
-          NODE_OPTIONS: --max_old_space_size=6096
-          DOCKER: true  # 👈 Active `output: 'standalone'` dans next.config.ts
-        run: pnpm build
-
-      - name: Create startup.sh
+      - name: Install dependencies and build
         run: |
-          echo '#!/bin/bash' > startup.sh
-          echo 'echo "🚀 Starting Next.js standalone server..."' >> startup.sh
-          echo 'cd /home/site/wwwroot/.next/standalone || exit 1' >> startup.sh
-          echo 'exec node server.js' >> startup.sh
-          chmod +x startup.sh
+          pnpm install
+          NODE_OPTIONS="--max-old-space-size=8192" bun run build
 
-      - name: Prepare deployment zip
+      - name: Create deployable ZIP
         run: |
-          mkdir deploy
-          cp -r .next/standalone deploy/.next/
-          cp -r .next/static deploy/.next/
-          cp -r public deploy/
-          cp package.json deploy/
-          cp startup.sh deploy/
-          cd deploy && zip -r ../build.zip .
+          zip -r release.zip . \
+            -x "*.git*" "*.idea/*" "*.vscode/*" "*.cursor/*" "*__mocks__/*" \
+            "tests/*" "docs/*" "scripts/*" "docker-compose/*" "*.github/*" \
+            "*coverage/*" "changelog/*" ".env*" ".husky/*" ".devcontainer/*" \
+            "*.log" "*.md" "*.prettier*" "*.eslint*" "*.editorconfig" \
+            "vitest.config.ts" "drizzle.config.ts" "*.toml" "renovate.json" "codecov.yml"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-app-release
+          path: release.zip
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'iliasse2'
+          app-name: 'iliasse2' # 🔁 remplace si besoin
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_BA40B43FC3B8475791FBBF06ACC1E7A7 }}
-          package: build.zip
+          package: release.zip
