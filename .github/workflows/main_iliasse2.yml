@@ -8,36 +8,55 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-    - name: Install Bun
-      shell: bash
-      run: |
-        curl -fsSL https://bun.sh/install | bash
-        echo "PATH=$HOME/.bun/bin:$PATH" >> $GITHUB_ENV
-        source $GITHUB_ENV
-        bun --version
-        
-    - name: Install PNPM
-      run: npm install -g pnpm
-        
-    - name: Install dependencies
-      run: pnpm install
-      
-    - name: Build
-      env:
-        NODE_OPTIONS: --max_old_space_size=6096
-      run: pnpm build
-      
-    - name: 'Deploy to Azure Web App'
-      id: deploy-to-webapp
-      uses: azure/webapps-deploy@v3  
-      with:
-        app-name: 'iliasse2'
-        slot-name: 'Production'
-        package: .
-        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_BA40B43FC3B8475791FBBF06ACC1E7A7 }}
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Bun (optional)
+        shell: bash
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "PATH=$HOME/.bun/bin:$PATH" >> $GITHUB_ENV
+          source $GITHUB_ENV
+          bun --version
+
+      - name: Install PNPM
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Next.js App (standalone)
+        env:
+          NODE_OPTIONS: --max_old_space_size=6096
+          DOCKER: true  # 👈 Active `output: 'standalone'` dans next.config.ts
+        run: pnpm build
+
+      - name: Create startup.sh
+        run: |
+          echo '#!/bin/bash' > startup.sh
+          echo 'echo "🚀 Starting Next.js standalone server..."' >> startup.sh
+          echo 'cd /home/site/wwwroot/.next/standalone || exit 1' >> startup.sh
+          echo 'exec node server.js' >> startup.sh
+          chmod +x startup.sh
+
+      - name: Prepare deployment zip
+        run: |
+          mkdir deploy
+          cp -r .next/standalone deploy/.next/
+          cp -r .next/static deploy/.next/
+          cp -r public deploy/
+          cp package.json deploy/
+          cp startup.sh deploy/
+          cd deploy && zip -r ../build.zip .
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'iliasse2'
+          slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_BA40B43FC3B8475791FBBF06ACC1E7A7 }}
+          package: build.zip
